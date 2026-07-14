@@ -10,8 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- SweetAlert2 untuk Popup & Game Suit -->
+    <!-- Library Eksternal (SweetAlert & Confetti) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         * {
@@ -41,6 +42,61 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             z-index: 1;
+        }
+
+        /* --- EFEK KUNANG-KUNANG --- */
+        #fireflies {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none; /* Biar tidak mengganggu klik */
+        }
+
+        .firefly {
+            position: absolute;
+            bottom: -10px;
+            width: 6px;
+            height: 6px;
+            background: #ffeb3b;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffeb3b;
+            animation: floatUp linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0); opacity: 0; }
+            20% { opacity: 1; transform: translateY(-20vh) scale(1); }
+            80% { opacity: 1; }
+            100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+        }
+
+        /* --- TOMBOL MUSIK --- */
+        #musicBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 20px;
+            cursor: pointer;
+            display: none; /* Muncul setelah paket dibuka */
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        #musicBtn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.5);
         }
 
         /* Kartu Kaca */
@@ -121,7 +177,7 @@
             display: none; 
         }
 
-        /* --- STYLING GALERI FOTO (SUDAH DIPERBAIKI ANTI-TERPOTONG) --- */
+        /* --- STYLING GALERI FOTO --- */
         #galeriFoto {
             display: none;
             animation: fadeIn 1s ease;
@@ -131,7 +187,7 @@
             width: 100%;
             max-height: 300px;
             height: auto;
-            object-fit: contain; /* Ini yang bikin foto utuh 100% */
+            object-fit: contain; 
             border-radius: 12px;
             border: 2px solid rgba(255, 255, 255, 0.6);
             margin-bottom: 15px;
@@ -151,12 +207,13 @@
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.5);
-            padding: 12px 25px;
+            padding: 10px 20px;
             font-size: 1rem;
             border-radius: 30px;
             cursor: pointer;
             transition: all 0.2s ease;
             font-weight: 600;
+            margin: 5px;
         }
 
         button:hover {
@@ -164,19 +221,28 @@
             transform: translateY(-3px);
         }
 
-        #btnLanjutPesan, #btnKado {
+        #btnLanjutPesan {
             display: none;
             margin: 0 auto;
+        }
+
+        .tombol-grup {
+            display: none;
+            justify-content: center;
+            flex-wrap: wrap;
         }
     </style>
 </head>
 
 <body>
     
-    <!-- LAGU SUDAH DIBUAT LOOP (MENGULANG OTOMATIS) -->
     <audio id="bgm" src="lagu.mp3" loop></audio>
 
     <div class="overlay"></div>
+    <div id="fireflies"></div> <!-- Wadah Kunang-kunang -->
+    
+    <!-- Tombol Musik -->
+    <button id="musicBtn" onclick="toggleMusic()">🎵</button>
 
     <div class="glass-card" id="card">
         <h1 id="judul">Nah, ini dia paketnya... ✨</h1>
@@ -199,11 +265,45 @@
             <img id="imgFoto" src="" class="foto-frame">
             <p id="teksFoto" class="caption"></p>
             <button id="btnNextFoto" onclick="nextFoto()">Lanjut ➡️</button>
-            <button id="btnKado" onclick="mainSuit()">Klaim Kado 🎁</button>
+            
+            <div id="tombolAkhir" class="tombol-grup">
+                <button onclick="munculQuote()">Tombol Anti-Stres 🧠</button>
+                <button onclick="mainSuit()">Klaim Kado 🎁</button>
+            </div>
         </div>
     </div>
 
     <script>
+        // --- GENERATE KUNANG-KUNANG ---
+        function buatKunangKunang() {
+            const wadah = document.getElementById('fireflies');
+            for (let i = 0; i < 35; i++) {
+                let kunang = document.createElement('div');
+                kunang.classList.add('firefly');
+                kunang.style.left = Math.random() * 100 + 'vw';
+                kunang.style.animationDuration = (Math.random() * 4 + 3) + 's';
+                kunang.style.animationDelay = Math.random() * 3 + 's';
+                wadah.appendChild(kunang);
+            }
+        }
+        buatKunangKunang();
+
+        // --- KONTROL MUSIK ---
+        let musikMain = false;
+        const lagu = document.getElementById("bgm");
+        const musicBtn = document.getElementById("musicBtn");
+
+        function toggleMusic() {
+            if (musikMain) {
+                lagu.pause();
+                musicBtn.innerHTML = "🔇";
+            } else {
+                lagu.play();
+                musicBtn.innerHTML = "🎵";
+            }
+            musikMain = !musikMain;
+        }
+
         // --- LOGIKA TUKANG PAKET ---
         window.onload = () => {
             setTimeout(kurirPaket, 500);
@@ -270,7 +370,9 @@
         const speed = 45; 
 
         function mulaiPesan() {
-            document.getElementById("bgm").play();
+            musikMain = true;
+            lagu.play();
+            musicBtn.style.display = "flex"; // Munculkan tombol musik
             document.getElementById("judul").innerHTML = "Untuk Trii,";
             ketikPesan();
         }
@@ -310,7 +412,7 @@
             
             if(fotoIndex === daftarFoto.length - 1) {
                 document.getElementById("btnNextFoto").style.display = "none";
-                document.getElementById("btnKado").style.display = "inline-block";
+                document.getElementById("tombolAkhir").style.display = "flex";
             }
         }
 
@@ -321,7 +423,27 @@
             }
         }
 
-        // --- GAME 2 LOGIC (SUIT LAWAN KAKEK) ---
+        // --- TOMBOL ANTI-STRES (QUOTES RANDOM) ---
+        const quotesKakek = [
+            "Kerja terus boleh, tapi jangan lupa minum air putih! 🚰",
+            "Overthinking nggak bikin cuan nambah, mending tarik napas panjang! 🧘‍♀️",
+            "Kalau capek ya istirahat, kamu manusia bukan robot! 🤖",
+            "Kakek bangga sama perjuanganmu, jangan nyerah ya! 💪",
+            "Ingat, ujian dan kerjaan itu sementara, kerennya kamu itu permanen! ✨",
+            "Senyum dikit dong, biar rezekinya makin lancar! 😊"
+        ];
+
+        function munculQuote() {
+            const randomQuote = quotesKakek[Math.floor(Math.random() * quotesKakek.length)];
+            Swal.fire({
+                title: 'Pesan dari Kakek 💌',
+                text: randomQuote,
+                icon: 'info',
+                confirmButtonText: 'Siap Laksanakan!'
+            });
+        }
+
+        // --- GAME 2 LOGIC (SUIT LAWAN KAKEK & CONFETTI) ---
         async function mainSuit() {
             const choices = ['Gunting ✌️', 'Batu ✊', 'Kertas ✋'];
             
@@ -349,6 +471,31 @@
                     Swal.fire('Seri! 😲', `Kakek juga milih ${choices[kakekChoice]}. Ayo kita ulang!`, 'info').then(() => mainSuit());
                 } 
                 else if ((triiChoice === 0 && kakekChoice === 2) || (triiChoice === 1 && kakekChoice === 0) || (triiChoice === 2 && kakekChoice === 1)) {
+                    // EFEK CONFETTI SAAT MENANG
+                    var duration = 3 * 1000;
+                    var end = Date.now() + duration;
+
+                    (function frame() {
+                        confetti({
+                            particleCount: 5,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 },
+                            colors: ['#ff0000', '#00ff00', '#0000ff']
+                        });
+                        confetti({
+                            particleCount: 5,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 },
+                            colors: ['#ff0000', '#00ff00', '#0000ff']
+                        });
+
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
+                        }
+                    }());
+
                     Swal.fire({
                         title: 'KAMU MENANG! 🎉', 
                         text: `Kakek milih ${choices[kakekChoice]}. Yeaay dapet kado!`, 
